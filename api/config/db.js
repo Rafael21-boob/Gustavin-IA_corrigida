@@ -10,11 +10,14 @@ const __dirname = path.dirname(__filename);
 // Carrega o único .env localizado na raiz do projeto
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Configura servidores DNS públicos para evitar o erro "querySrv ECONNREFUSED" no Windows/roteadores locais ao conectar ao MongoDB Atlas
-try {
-  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
-} catch (e) {
-  // Fallback silencioso caso o ambiente restrinja alteração de DNS
+// Configura servidores DNS públicos apenas em desenvolvimento local para evitar o erro "querySrv ECONNREFUSED" no Windows.
+// Na Vercel (AWS Lambda), os servidores DNS nativos devem ser mantidos para permitir a resolução SRV correta.
+if (!process.env.VERCEL) {
+  try {
+    dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+  } catch (e) {
+    // Fallback silencioso caso o ambiente restrinja alteração de DNS
+  }
 }
 
 /**
@@ -54,7 +57,8 @@ export async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
+      maxPoolSize: 10,
     };
 
     cached.promise = mongoose.connect(uri, opts).then((mongooseInstance) => {

@@ -1,4 +1,5 @@
 import http from 'http';
+import mongoose from 'mongoose';
 import app from '../api/app.js';
 
 const PORT = 3099;
@@ -180,14 +181,17 @@ async function runTests() {
     failedCount++;
   } finally {
     // Encerra servidor HTTP de teste
-    server.close(() => {
+    server.close(async () => {
       console.log('\n======================================================');
       console.log(`📊 RESULTADO FINAL DOS TESTES:`);
       console.log(`   Sucessos: ${passedCount}`);
       console.log(`   Falhas:   ${failedCount}`);
       console.log('======================================================\n');
 
-      process.exitCode = failedCount > 0 ? 1 : 0;
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+      }
+      process.exit(failedCount > 0 ? 1 : 0);
     });
   }
 }
